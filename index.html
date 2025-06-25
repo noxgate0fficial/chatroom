@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Websim Chatroom</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        #main-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 90%;
+            max-width: 1000px;
+            height: 80vh;
+        }
+
+        #login-screen {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        #login-screen h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 25px;
+        }
+
+        #nickname-input,
+        #avatar-input {
+            width: calc(100% - 30px);
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1em;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #nickname-input:focus,
+        #avatar-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        #enter-chat-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        #enter-chat-button:hover {
+            background-color: #0056b3;
+        }
+
+        #enter-chat-button:active {
+            transform: translateY(1px);
+        }
+
+        #chat-app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            flex-direction: row;
+        }
+
+        #chat-app.hidden {
+            display: none;
+        }
+
+        #login-screen.hidden {
+            display: none;
+        }
+
+        #user-list-container {
+            width: 250px;
+            background-color: #f7f9fc;
+            border-right: 1px solid #eee;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #user-list-container h3 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.1em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        #user-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        #user-list li {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        #user-list li img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+        }
+
+        #chat-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-window {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 70%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .message.self {
+            align-self: flex-end;
+            background-color: #e0f7fa; /* Light blue for self */
+            color: #2196f3;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background-color: #f1f0f0; /* Light gray for others */
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid #eee;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            word-wrap: break-word;
+            word-break: break-all; /* Ensures long words break */
+        }
+
+        .sender-info {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 2px;
+            font-size: 0.85em;
+            color: #777;
+        }
+
+        .sender-info .username {
+            font-weight: bold;
+            margin-right: 8px;
+            color: #555;
+        }
+
+        .message.self .sender-info .username {
+            color: #1a73e8; /* Blue for self username */
+        }
+
+        .message .text {
+            font-size: 1em;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .message.self .text {
+            color: #1a73e8; /* Blue for self text */
+        }
+
+        .system-message {
+            text-align: center;
+            font-size: 0.85em;
+            color: #888;
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        #message-input-area {
+            display: flex;
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+
+        #message-input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #message-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        #send-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        #send-button:hover {
+            background-color: #0056b3;
+        }
+
+        #send-button:active {
+            transform: translateY(1px);
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="main-container">
+        <div id="login-screen">
+            <h2>Welcome to Websim Chat!</h2>
+            <input type="text" id="nickname-input" placeholder="Enter your nickname...">
+            <input type="text" id="avatar-input" placeholder="Enter profile picture URL (optional)...">
+            <button id="enter-chat-button">Enter Chat</button>
+        </div>
+
+        <div id="chat-app" class="hidden">
+            <div id="user-list-container">
+                <h3>Online Users</h3>
+                <ul id="user-list">
+                    <!-- Users will be listed here -->
+                </ul>
+            </div>
+            <div id="chat-main">
+                <div id="chat-window">
+                    <!-- Chat messages will appear here -->
+                </div>
+                <div id="message-input-area">
+                    <input type="text" id="message-input" placeholder="Type your message...">
+                    <button id="send-button">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const room = new WebsimSocket();
+
+        const chatApp = document.getElementById('chat-app');
+        const loginScreen = document.getElementById('login-screen');
+        const nicknameInput = document.getElementById('nickname-input');
+        const avatarInput = document.getElementById('avatar-input');
+        const enterChatButton = document.getElementById('enter-chat-button');
+
+        const chatWindow = document.getElementById('chat-window');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const userListElement = document.getElementById('user-list');
+
+        let currentNickname = '';
+
+        async function enterChat() {
+            const nickname = nicknameInput.value.trim();
+            if (!nickname) {
+                alert('Please enter a nickname to join the chat.');
+                return;
+            }
+
+            currentNickname = nickname;
+            const customAvatarUrl = avatarInput.value.trim();
+
+            // Initialize Websim Socket
+            await room.initialize();
+            console.log('Websim Socket initialized for client:', room.clientId);
+
+            // Update presence with the chosen nickname and optional avatar URL
+            room.updatePresence({ nickname: currentNickname, avatarUrl: customAvatarUrl || undefined });
+
+            // Show chat app, hide login screen
+            loginScreen.classList.add('hidden');
+            chatApp.classList.remove('hidden');
+
+            updateUserList(); // Initial user list update
+
+            room.subscribePresence(() => {
+                updateUserList();
+            });
+
+            room.onmessage = (event) => {
+                const data = event.data;
+                switch (data.type) {
+                    case 'chatMessage':
+                        addChatMessage(data);
+                        break;
+                    case 'connected':
+                        // Use nickname from presence if available, fallback to Websim username
+                        const connectedPeer = room.peers[data.clientId];
+                        const connectedPresence = room.presence[data.clientId];
+                        const connectedDisplayName = connectedPresence?.nickname || (connectedPeer ? connectedPeer.username : 'Someone');
+                        addSystemMessage(`${connectedDisplayName} joined the chat.`);
+                        break;
+                    case 'disconnected':
+                        // Use username provided in the event for disconnected clients
+                        addSystemMessage(`${data.username} left the chat.`);
+                        break;
+                    default:
+                        console.log("Received event:", data);
+                }
+            };
+
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        function addChatMessage(messageData) {
+            const senderId = messageData.clientId;
+            const senderInfo = room.peers[senderId];
+            const senderPresence = room.presence[senderId]; // Get sender's presence
+
+            if (!senderInfo) {
+                console.warn("Sender info not found for clientId:", senderId);
+                return;
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(senderId === room.clientId ? 'self' : 'other');
+
+            const avatarImg = document.createElement('img');
+            avatarImg.classList.add('avatar');
+            // Prioritize avatar sent with message, then presence, then Websim default, then placeholder
+            avatarImg.src = messageData.avatarUrl || senderPresence?.avatarUrl || senderInfo.avatarUrl || 'https://via.placeholder.com/38';
+            avatarImg.alt = messageData.nickname || senderInfo.username;
+
+            const messageContentDiv = document.createElement('div');
+            messageContentDiv.classList.add('message-content');
+
+            const senderInfoDiv = document.createElement('div');
+            senderInfoDiv.classList.add('sender-info');
+            const usernameSpan = document.createElement('span');
+            usernameSpan.classList.add('username');
+            // Use the nickname sent with the message, or fallback to presence nickname, or Websim username
+            usernameSpan.textContent = messageData.nickname || senderPresence?.nickname || senderInfo.username;
+            const timestampSpan = document.createElement('span');
+            timestampSpan.classList.add('timestamp');
+            const date = new Date(messageData.timestamp);
+            timestampSpan.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            senderInfoDiv.append(usernameSpan, timestampSpan);
+
+            const textDiv = document.createElement('div');
+            textDiv.classList.add('text');
+            textDiv.textContent = messageData.text;
+
+            messageContentDiv.append(senderInfoDiv, textDiv);
+            messageDiv.append(avatarImg, messageContentDiv);
+
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to bottom
+        }
+
+        function addSystemMessage(text) {
+            const systemMessageDiv = document.createElement('div');
+            systemMessageDiv.classList.add('system-message');
+            systemMessageDiv.textContent = text;
+            chatWindow.appendChild(systemMessageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to bottom
+        }
+
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                // Get the current avatar URL from own presence or Websim peer info
+                const senderAvatar = room.presence[room.clientId]?.avatarUrl || room.peers[room.clientId]?.avatarUrl;
+
+                room.send({
+                    type: 'chatMessage',
+                    text: messageText,
+                    timestamp: Date.now(),
+                    nickname: currentNickname, // Send the chosen nickname with the message
+                    avatarUrl: senderAvatar, // Send the current avatar URL with the message
+                    echo: true // Ensure the sender also receives their own message
+                });
+                messageInput.value = ''; // Clear input field
+            }
+        }
+
+        function updateUserList() {
+            userListElement.innerHTML = ''; // Clear current list
+            const peerIds = Object.keys(room.peers);
+
+            peerIds.forEach(clientId => {
+                const peer = room.peers[clientId];
+                const presence = room.presence[clientId]; // Get the presence for this client
+                if (peer) {
+                    const listItem = document.createElement('li');
+                    const avatarImg = document.createElement('img');
+                    // Display chosen avatar URL if available, else Websim avatar, else placeholder
+                    avatarImg.src = presence?.avatarUrl || peer.avatarUrl || 'https://via.placeholder.com/30';
+                    avatarImg.alt = peer.username;
+                    const usernameSpan = document.createElement('span');
+                    // Display chosen nickname if available, else Websim username
+                    let displayUsername = presence?.nickname || peer.username;
+                    usernameSpan.textContent = displayUsername + (clientId === room.clientId ? " (You)" : "");
+                    listItem.append(avatarImg, usernameSpan);
+                    userListElement.appendChild(listItem);
+                }
+            });
+        }
+
+        // Event listeners for the login screen
+        enterChatButton.addEventListener('click', enterChat);
+        nicknameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                enterChat();
+            }
+        });
+        avatarInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                enterChat();
+            }
+        });
+
+        // Initially, the chat app is hidden, and the login screen is visible by default due to HTML structure
+        // No need to call initializeChat() directly on load
+    </script>
+</body>
+</html>
